@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Kindle Drawing Pad</title>
+  <style>
+    body { margin:0; background:#fff; }
+    canvas {
+      border:1px solid #000;
+      touch-action:none;
+      display:block;
+      margin:auto;
+      margin-top:20px;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="pad" width="600" height="800"></canvas>
+  <script>
+    const c = document.getElementById('pad');
+    const ctx = c.getContext('2d');
+    ctx.fillStyle = "black";
+    let drawing = false;
+
+    function getPos(e) {
+      const rect = c.getBoundingClientRect();
+      const touch = e.touches[0];
+      return {x: touch.clientX - rect.left, y: touch.clientY - rect.top};
+    }
+
+    c.addEventListener('touchstart', e => {
+      drawing = true;
+      const {x,y} = getPos(e);
+      ctx.fillRect(x, y, 2, 2);
+      e.preventDefault();
+    });
+
+    c.addEventListener('touchend', e => { drawing = false; e.preventDefault(); });
+
+    c.addEventListener('touchmove', e => {
+      if (!drawing) return;
+      const {x,y} = getPos(e);
+      ctx.fillRect(x, y, 2, 2);
+      e.preventDefault();
+    });
+  </script>
+</body>
+</html>
