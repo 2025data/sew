@@ -74,9 +74,12 @@
     ctx.strokeStyle = "black";
     ctx.lineWidth = parseInt(widthSel.value);
     ctx.lineCap = "round";
+    ctx.lineJoin = "round";
 
     let drawing = false;
     let lastX = 0, lastY = 0;
+    let hasMoved = false;
+    let holdTimer = null;
 
     function getPos(e) {
       const rect = c.getBoundingClientRect();
@@ -84,25 +87,71 @@
       return {x: touch.clientX - rect.left, y: touch.clientY - rect.top};
     }
 
+    function drawDot(x, y) {
+      ctx.beginPath();
+      ctx.arc(x, y, ctx.lineWidth / 2, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
     c.addEventListener('touchstart', e => {
       drawing = true;
+      hasMoved = false;
       const {x, y} = getPos(e);
       lastX = x; lastY = y;
+      
+      // Set timer to draw a dot if user holds still
+      holdTimer = setTimeout(() => {
+        if (!hasMoved && drawing) {
+          drawDot(x, y);
+        }
+      }, 150);
+      
       e.preventDefault();
     });
 
     c.addEventListener('touchend', e => {
       drawing = false;
+      clearTimeout(holdTimer);
+      
+      // If no movement occurred, draw a dot
+      if (!hasMoved) {
+        drawDot(lastX, lastY);
+      }
+      
       e.preventDefault();
     });
 
     c.addEventListener('touchmove', e => {
       if (!drawing) return;
+      hasMoved = true;
+      clearTimeout(holdTimer);
+      
       const {x, y} = getPos(e);
-      ctx.beginPath();
-      ctx.moveTo(lastX, lastY);
-      ctx.lineTo(x, y);
-      ctx.stroke();
+      
+      // Calculate distance for smoother lines
+      const dx = x - lastX;
+      const dy = y - lastY;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+      
+      // For slow movements, add intermediate points
+      if (distance > 0) {
+        const steps = Math.max(1, Math.ceil(distance / 2));
+        
+        for (let i = 0; i <= steps; i++) {
+          const t = i / steps;
+          const ix = lastX + dx * t;
+          const iy = lastY + dy * t;
+          
+          if (i === 0) {
+            ctx.beginPath();
+            ctx.moveTo(ix, iy);
+          } else {
+            ctx.lineTo(ix, iy);
+          }
+        }
+        ctx.stroke();
+      }
+      
       lastX = x; lastY = y;
       e.preventDefault();
     });
