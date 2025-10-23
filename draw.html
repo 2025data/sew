@@ -61,6 +61,12 @@
       <option value="153">153 px</option>
       <option value="300">300 px</option>
     </select>
+    <select id="mirror">
+      <option value="none" selected>None</option>
+      <option value="bilateral">Bi-lateral</option>
+      <option value="radial">Radial</option>
+      <option value="quad">Quad</option>
+    </select>
     <button id="clear">🧹 Clear</button>
   </div>
 
@@ -71,11 +77,13 @@
     const ctx = c.getContext('2d');
     const widthSel = document.getElementById('width');
     const colorSel = document.getElementById('color');
+    const mirrorSel = document.getElementById('mirror');
     const clearBtn = document.getElementById('clear');
 
     function resizeCanvas() {
       c.width = window.innerWidth;
       c.height = window.innerHeight - document.getElementById('toolbar').offsetHeight;
+      drawGuides();
     }
     window.addEventListener('resize', resizeCanvas);
     resizeCanvas();
@@ -91,6 +99,51 @@
     let hasMoved = false;
     let holdTimer = null;
 
+    function drawGuides() {
+      const mode = mirrorSel.value;
+      const centerX = c.width / 2;
+      const centerY = c.height / 2;
+      
+      // Clear old guides and redraw canvas content would be complex,
+      // so we just draw subtle guide lines
+      const oldStyle = ctx.strokeStyle;
+      const oldWidth = ctx.lineWidth;
+      
+      ctx.strokeStyle = '#ddd';
+      ctx.lineWidth = 1;
+      ctx.setLineDash([5, 5]);
+      
+      if (mode === 'bilateral') {
+        ctx.beginPath();
+        ctx.moveTo(centerX, 0);
+        ctx.lineTo(centerX, c.height);
+        ctx.stroke();
+      } else if (mode === 'quad') {
+        ctx.beginPath();
+        ctx.moveTo(centerX, 0);
+        ctx.lineTo(centerX, c.height);
+        ctx.moveTo(0, centerY);
+        ctx.lineTo(c.width, centerY);
+        ctx.stroke();
+      } else if (mode === 'radial') {
+        // Draw 8 radial lines
+        for (let i = 0; i < 8; i++) {
+          const angle = (i * Math.PI) / 4;
+          ctx.beginPath();
+          ctx.moveTo(centerX, centerY);
+          ctx.lineTo(
+            centerX + Math.cos(angle) * Math.max(c.width, c.height),
+            centerY + Math.sin(angle) * Math.max(c.width, c.height)
+          );
+          ctx.stroke();
+        }
+      }
+      
+      ctx.setLineDash([]);
+      ctx.strokeStyle = oldStyle;
+      ctx.lineWidth = oldWidth;
+    }
+
     function getPos(e) {
       const rect = c.getBoundingClientRect();
       const touch = e.touches[0];
@@ -98,9 +151,116 @@
     }
 
     function drawDot(x, y) {
+      const mode = mirrorSel.value;
+      const centerX = c.width / 2;
+      const centerY = c.height / 2;
+      
+      // Original dot
       ctx.beginPath();
       ctx.arc(x, y, ctx.lineWidth / 2, 0, Math.PI * 2);
       ctx.fill();
+      
+      // Mirror dots based on mode
+      if (mode === 'bilateral') {
+        const mirrorX = c.width - x;
+        ctx.beginPath();
+        ctx.arc(mirrorX, y, ctx.lineWidth / 2, 0, Math.PI * 2);
+        ctx.fill();
+      } else if (mode === 'quad') {
+        const mirrorX = c.width - x;
+        const mirrorY = c.height - y;
+        ctx.beginPath();
+        ctx.arc(mirrorX, y, ctx.lineWidth / 2, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(x, mirrorY, ctx.lineWidth / 2, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(mirrorX, mirrorY, ctx.lineWidth / 2, 0, Math.PI * 2);
+        ctx.fill();
+      } else if (mode === 'radial') {
+        // 8-way radial symmetry
+        const dx = x - centerX;
+        const dy = y - centerY;
+        const angle = Math.atan2(dy, dx);
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        
+        for (let i = 0; i < 8; i++) {
+          const newAngle = (i * Math.PI) / 4;
+          const nx = centerX + Math.cos(newAngle) * dist;
+          const ny = centerY + Math.sin(newAngle) * dist;
+          ctx.beginPath();
+          ctx.arc(nx, ny, ctx.lineWidth / 2, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+    }
+
+    function drawLine(x1, y1, x2, y2) {
+      const mode = mirrorSel.value;
+      const centerX = c.width / 2;
+      const centerY = c.height / 2;
+      
+      // Original line
+      ctx.beginPath();
+      ctx.moveTo(x1, y1);
+      ctx.lineTo(x2, y2);
+      ctx.stroke();
+      
+      // Mirror lines based on mode
+      if (mode === 'bilateral') {
+        const mirrorX1 = c.width - x1;
+        const mirrorX2 = c.width - x2;
+        ctx.beginPath();
+        ctx.moveTo(mirrorX1, y1);
+        ctx.lineTo(mirrorX2, y2);
+        ctx.stroke();
+      } else if (mode === 'quad') {
+        const mirrorX1 = c.width - x1;
+        const mirrorX2 = c.width - x2;
+        const mirrorY1 = c.height - y1;
+        const mirrorY2 = c.height - y2;
+        
+        ctx.beginPath();
+        ctx.moveTo(mirrorX1, y1);
+        ctx.lineTo(mirrorX2, y2);
+        ctx.stroke();
+        
+        ctx.beginPath();
+        ctx.moveTo(x1, mirrorY1);
+        ctx.lineTo(x2, mirrorY2);
+        ctx.stroke();
+        
+        ctx.beginPath();
+        ctx.moveTo(mirrorX1, mirrorY1);
+        ctx.lineTo(mirrorX2, mirrorY2);
+        ctx.stroke();
+      } else if (mode === 'radial') {
+        // 8-way radial symmetry
+        const dx1 = x1 - centerX;
+        const dy1 = y1 - centerY;
+        const dx2 = x2 - centerX;
+        const dy2 = y2 - centerY;
+        const dist1 = Math.sqrt(dx1 * dx1 + dy1 * dy1);
+        const dist2 = Math.sqrt(dx2 * dx2 + dy2 * dy2);
+        const angle1 = Math.atan2(dy1, dx1);
+        const angle2 = Math.atan2(dy2, dx2);
+        
+        for (let i = 0; i < 8; i++) {
+          const newAngle = (i * Math.PI) / 4;
+          const angleDiff = angle2 - angle1;
+          
+          const nx1 = centerX + Math.cos(newAngle) * dist1;
+          const ny1 = centerY + Math.sin(newAngle) * dist1;
+          const nx2 = centerX + Math.cos(newAngle + angleDiff) * dist2;
+          const ny2 = centerY + Math.sin(newAngle + angleDiff) * dist2;
+          
+          ctx.beginPath();
+          ctx.moveTo(nx1, ny1);
+          ctx.lineTo(nx2, ny2);
+          ctx.stroke();
+        }
+      }
     }
 
     c.addEventListener('touchstart', e => {
@@ -147,19 +307,15 @@
       if (distance > 0) {
         const steps = Math.max(1, Math.ceil(distance / 2));
         
-        for (let i = 0; i <= steps; i++) {
+        for (let i = 1; i <= steps; i++) {
           const t = i / steps;
           const ix = lastX + dx * t;
           const iy = lastY + dy * t;
+          const prevIx = lastX + dx * (i - 1) / steps;
+          const prevIy = lastY + dy * (i - 1) / steps;
           
-          if (i === 0) {
-            ctx.beginPath();
-            ctx.moveTo(ix, iy);
-          } else {
-            ctx.lineTo(ix, iy);
-          }
+          drawLine(prevIx, prevIy, ix, iy);
         }
-        ctx.stroke();
       }
       
       lastX = x; lastY = y;
@@ -177,9 +333,16 @@
       ctx.fillStyle = colorSel.value;
     });
 
+    // Change mirror mode
+    mirrorSel.addEventListener('change', () => {
+      ctx.clearRect(0, 0, c.width, c.height);
+      drawGuides();
+    });
+
     // Clear canvas
     clearBtn.addEventListener('click', () => {
       ctx.clearRect(0, 0, c.width, c.height);
+      drawGuides();
     });
   </script>
 </body>
