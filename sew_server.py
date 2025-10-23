@@ -29,6 +29,18 @@ def serve_draw():
     print(f"📱 Request for draw.html from: {request.remote_addr}")
     return send_file('draw.html')
 
+@app.route('/upload.html')
+def serve_upload():
+    """Serve the upload page"""
+    print(f"📤 Request for upload.html from: {request.remote_addr}")
+    return send_file('upload.html')
+
+@app.route('/paste.html')
+def serve_paste():
+    """Serve the paste page"""
+    print(f"📋 Request for paste.html from: {request.remote_addr}")
+    return send_file('paste.html')
+
 @app.route('/test')
 def test():
     """Test endpoint to verify connectivity"""
@@ -75,6 +87,42 @@ def list_drawings():
             'files': files
         })
     except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@app.route('/upload_drawing', methods=['POST'])
+def upload_drawing():
+    """Receive uploaded drawing file"""
+    try:
+        data = request.json
+        filename = data.get('filename', 'unknown.txt')
+        drawing_data = data.get('data')
+        
+        # Determine output filename (convert .txt to .json)
+        if filename.endswith('.txt'):
+            output_filename = filename.replace('.txt', '.json')
+        elif filename.endswith('.json'):
+            output_filename = filename
+        else:
+            output_filename = f"{filename}.json"
+        
+        filepath = os.path.join(SEW_FOLDER, output_filename)
+        
+        # Save JSON file
+        with open(filepath, 'w') as f:
+            json.dump(drawing_data, f, indent=2)
+        
+        print(f"📤 Uploaded: {filename} → {output_filename}")
+        return jsonify({
+            'success': True,
+            'filename': output_filename,
+            'path': filepath
+        })
+    
+    except Exception as e:
+        print(f"❌ Upload error: {e}")
         return jsonify({
             'success': False,
             'error': str(e)

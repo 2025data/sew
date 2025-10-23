@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Upload Drawings</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 600px;
+      margin: 50px auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    .container {
+      background: white;
+      padding: 30px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    h1 {
+      margin-top: 0;
+      color: #333;
+    }
+    .upload-area {
+      border: 3px dashed #ccc;
+      padding: 40px;
+      text-align: center;
+      margin: 20px 0;
+      border-radius: 8px;
+      background: #fafafa;
+    }
+    .upload-area.dragover {
+      border-color: #4CAF50;
+      background: #f0f8f0;
+    }
+    input[type="file"] {
+      display: none;
+    }
+    .upload-btn {
+      background: #4CAF50;
+      color: white;
+      padding: 15px 30px;
+      font-size: 18px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      margin: 10px;
+    }
+    .upload-btn:hover {
+      background: #45a049;
+    }
+    .file-list {
+      margin-top: 20px;
+      padding: 10px;
+      background: #f9f9f9;
+      border-radius: 4px;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+    .file-item {
+      padding: 8px;
+      margin: 4px 0;
+      background: white;
+      border-radius: 4px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .file-item.success {
+      border-left: 4px solid #4CAF50;
+    }
+    .file-item.error {
+      border-left: 4px solid #f44336;
+    }
+    .status {
+      font-size: 12px;
+      padding: 4px 8px;
+      border-radius: 3px;
+    }
+    .status.success {
+      background: #4CAF50;
+      color: white;
+    }
+    .status.error {
+      background: #f44336;
+      color: white;
+    }
+    .status.pending {
+      background: #ff9800;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>📤 Upload Drawing Files</h1>
+    <p>Upload your <code>.txt</code> or <code>.json</code> drawing files to the server.</p>
+    
+    <div class="upload-area" id="dropArea">
+      <p>📁 Drag and drop files here</p>
+      <p style="margin: 10px 0;">— or —</p>
+      <button class="upload-btn" onclick="document.getElementById('fileInput').click()">
+        Choose Files
+      </button>
+      <input type="file" id="fileInput" multiple accept=".txt,.json" onchange="handleFiles(this.files)">
+    </div>
+
+    <div id="fileList" class="file-list" style="display: none;">
+      <h3>Upload Status:</h3>
+      <div id="fileItems"></div>
+    </div>
+
+    <div style="margin-top: 20px; padding: 15px; background: #fff3cd; border-radius: 4px; border-left: 4px solid #ffc107;">
+      <strong>⚠️ Kindle Users:</strong>
+      <p style="margin: 5px 0;">The Kindle browser may not support file uploads. Use USB cable to transfer files:</p>
+      <ol style="margin: 5px 0; padding-left: 20px;">
+        <li>Connect Kindle to PC via USB</li>
+        <li>Open Kindle drive (usually E: or F:)</li>
+        <li>Find files in <code>documents</code> folder</li>
+        <li>Copy to PC's <code>SewCustom</code> folder</li>
+      </ol>
+    </div>
+  </div>
+
+  <script>
+    const dropArea = document.getElementById('dropArea');
+    const fileInput = document.getElementById('fileInput');
+    const fileList = document.getElementById('fileList');
+    const fileItems = document.getElementById('fileItems');
+
+    // Prevent default drag behaviors
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+      dropArea.addEventListener(eventName, preventDefaults, false);
+      document.body.addEventListener(eventName, preventDefaults, false);
+    });
+
+    function preventDefaults(e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+
+    // Highlight drop area
+    ['dragenter', 'dragover'].forEach(eventName => {
+      dropArea.addEventListener(eventName, () => {
+        dropArea.classList.add('dragover');
+      }, false);
+    });
+
+    ['dragleave', 'drop'].forEach(eventName => {
+      dropArea.addEventListener(eventName, () => {
+        dropArea.classList.remove('dragover');
+      }, false);
+    });
+
+    // Handle dropped files
+    dropArea.addEventListener('drop', (e) => {
+      const dt = e.dataTransfer;
+      const files = dt.files;
+      handleFiles(files);
+    }, false);
+
+    function handleFiles(files) {
+      if (files.length === 0) return;
+      
+      fileList.style.display = 'block';
+      fileItems.innerHTML = '';
+
+      [...files].forEach(uploadFile);
+    }
+
+    function uploadFile(file) {
+      // Create file item in list
+      const item = document.createElement('div');
+      item.className = 'file-item';
+      item.innerHTML = `
+        <span>${file.name}</span>
+        <span class="status pending" id="status-${file.name}">Uploading...</span>
+      `;
+      fileItems.appendChild(item);
+
+      // Read file content
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const content = e.target.result;
+          let data;
+          
+          // Try to parse as JSON
+          try {
+            data = JSON.parse(content);
+          } catch (err) {
+            updateStatus(file.name, 'error', 'Invalid JSON');
+            return;
+          }
+
+          // Send to server
+          fetch('/upload_drawing', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              filename: file.name,
+              data: data
+            })
+          })
+          .then(response => response.json())
+          .then(result => {
+            if (result.success) {
+              updateStatus(file.name, 'success', 'Uploaded ✓');
+            } else {
+              updateStatus(file.name, 'error', result.error || 'Failed');
+            }
+          })
+          .catch(error => {
+            updateStatus(file.name, 'error', 'Network error');
+            console.error('Upload error:', error);
+          });
+
+        } catch (error) {
+          updateStatus(file.name, 'error', 'Read error');
+        }
+      };
+
+      reader.onerror = function() {
+        updateStatus(file.name, 'error', 'Cannot read file');
+      };
+
+      reader.readAsText(file);
+    }
+
+    function updateStatus(filename, statusType, message) {
+      const statusEl = document.getElementById(`status-${filename}`);
+      if (statusEl) {
+        statusEl.className = `status ${statusType}`;
+        statusEl.textContent = message;
+        statusEl.parentElement.classList.add(statusType);
+      }
+    }
+  </script>
+</body>
+</html>
