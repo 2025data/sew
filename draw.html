@@ -40,18 +40,26 @@
 </head>
 <body>
   <div id="toolbar">
-    <label for="width">Line:</label>
+    <select id="color">
+      <option value="#000000" selected>Black</option>
+      <option value="#333333">Dark Gray</option>
+      <option value="#666666">Gray</option>
+      <option value="#999999">Light Gray</option>
+      <option value="#CCCCCC">Lighter Gray</option>
+      <option value="#FFFFFF">White</option>
+    </select>
     <select id="width">
       <option value="1">1 px</option>
       <option value="2">2 px</option>
-      <option value="3">3 px</option>
-      <option value="5" selected>5 px</option>
-      <option value="8">8 px</option>
-      <option value="13">13 px</option>
-      <option value="21">21 px</option>
-      <option value="34">34 px</option>
+      <option value="4">4 px</option>
+      <option value="7">7 px</option>
+      <option value="12" selected>12 px</option>
+      <option value="20">20 px</option>
+      <option value="33">33 px</option>
       <option value="55">55 px</option>
-      <option value="100">100 px</option>
+      <option value="92">92 px</option>
+      <option value="153">153 px</option>
+      <option value="300">300 px</option>
     </select>
     <button id="clear">🧹 Clear</button>
   </div>
@@ -62,6 +70,7 @@
     const c = document.getElementById('pad');
     const ctx = c.getContext('2d');
     const widthSel = document.getElementById('width');
+    const colorSel = document.getElementById('color');
     const clearBtn = document.getElementById('clear');
 
     function resizeCanvas() {
@@ -71,7 +80,8 @@
     window.addEventListener('resize', resizeCanvas);
     resizeCanvas();
 
-    ctx.strokeStyle = "black";
+    ctx.strokeStyle = colorSel.value;
+    ctx.fillStyle = colorSel.value;
     ctx.lineWidth = parseInt(widthSel.value);
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
@@ -159,6 +169,12 @@
     // Change line width
     widthSel.addEventListener('change', () => {
       ctx.lineWidth = parseInt(widthSel.value);
+    });
+
+    // Change color
+    colorSel.addEventListener('change', () => {
+      ctx.strokeStyle = colorSel.value;
+      ctx.fillStyle = colorSel.value;
     });
 
     // Clear canvas
