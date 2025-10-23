@@ -398,7 +398,7 @@
       allStrokes = []; // Clear stroke data
     });
 
-    // Download drawing as JSON file
+    // Download drawing as TXT file (Kindle compatible)
     sewBtn.addEventListener('click', () => {
       if (allStrokes.length === 0) {
         alert('No drawing to send!');
@@ -412,13 +412,13 @@
         timestamp: new Date().toISOString()
       };
 
-      // Create filename with timestamp
+      // Create filename with timestamp (use .txt for Kindle compatibility)
       const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
-      const filename = `drawing_${timestamp}.json`;
+      const filename = `drawing_${timestamp}.txt`;
 
-      // Create blob and download
+      // Create blob and download as text/plain for Kindle
       const blob = new Blob([JSON.stringify(drawingData, null, 2)], {
-        type: 'application/json'
+        type: 'text/plain'
       });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -427,7 +427,7 @@
       a.click();
       URL.revokeObjectURL(url);
 
-      alert('Drawing saved as: ' + filename);
+      alert('Drawing saved as: ' + filename + '\nRename to .json on PC');
     });
 
     // Show JSON in copyable modal
