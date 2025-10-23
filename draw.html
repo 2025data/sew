@@ -44,13 +44,16 @@
     <select id="width">
       <option value="1">1 px</option>
       <option value="2">2 px</option>
-      <option value="4" selected>4 px</option>
-      <option value="6">6 px</option>
+      <option value="3">3 px</option>
+      <option value="5" selected>5 px</option>
       <option value="8">8 px</option>
-      <option value="10">10 px</option>
+      <option value="13">13 px</option>
+      <option value="21">21 px</option>
+      <option value="34">34 px</option>
+      <option value="55">55 px</option>
+      <option value="100">100 px</option>
     </select>
     <button id="clear">🧹 Clear</button>
-    <button id="save">💾 Save PNG</button>
   </div>
 
   <canvas id="pad"></canvas>
@@ -59,7 +62,6 @@
     const c = document.getElementById('pad');
     const ctx = c.getContext('2d');
     const widthSel = document.getElementById('width');
-    const saveBtn = document.getElementById('save');
     const clearBtn = document.getElementById('clear');
 
     function resizeCanvas() {
@@ -108,14 +110,6 @@
     // Change line width
     widthSel.addEventListener('change', () => {
       ctx.lineWidth = parseInt(widthSel.value);
-    });
-
-    // Save as PNG
-    saveBtn.addEventListener('click', () => {
-      const link = document.createElement('a');
-      link.download = 'kindle_drawing.png';
-      link.href = c.toDataURL('image/png');
-      link.click();
     });
 
     // Clear canvas
