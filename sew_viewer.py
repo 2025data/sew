@@ -183,9 +183,25 @@ class SewViewer(QMainWindow):
             # Create embroidery pattern
             pattern = pystitch.EmbPattern()
             
-            # Scaling factor (divide by 4 for reasonable embroidery size)
-            # 1 unit in pystitch = 0.1mm
-            scale = 0.25
+            # Get canvas dimensions from saved data
+            canvas_width = data.get('width', 800)  # Kindle canvas width in pixels
+            canvas_height = data.get('height', 900)  # Kindle canvas height in pixels
+            
+            # Target dimensions for embroidery (Kindle drawable area 1:1 scale)
+            target_width_inches = 3.5   # inches
+            target_height_inches = 3.75  # inches
+            
+            # Convert inches to pystitch units (1 unit = 0.1mm, 1 inch = 25.4mm)
+            # 3.5" = 88.9mm = 889 units, 3.75" = 95.25mm = 952.5 units
+            target_width_units = target_width_inches * 254  # 254 units per inch
+            target_height_units = target_height_inches * 254
+            
+            # Calculate scale to map canvas pixels to exact target dimensions
+            scale_x = target_width_units / canvas_width
+            scale_y = target_height_units / canvas_height
+            
+            # Use different scale for X and Y to map exactly to 3.5" x 3.75"
+            # This preserves the drawing exactly as seen on Kindle
             
             # Convert each stroke
             for stroke in data.get('strokes', []):
@@ -195,8 +211,8 @@ class SewViewer(QMainWindow):
                 if len(coords) < 2:
                     continue  # Skip single points
                     
-                # Scale coordinates
-                scaled_coords = [(x * scale, y * scale) for x, y in coords]
+                # Scale coordinates with separate X and Y scaling for 1:1 mapping
+                scaled_coords = [(x * scale_x, y * scale_y) for x, y in coords]
                 
                 # Add to pattern
                 pattern.add_block(scaled_coords, color)
@@ -239,7 +255,13 @@ class SewViewer(QMainWindow):
             # Create embroidery pattern
             pattern = pystitch.EmbPattern()
             
-            scale = 0.25
+            # Get canvas dimensions and calculate scale (same as PES conversion)
+            canvas_width = data.get('width', 800)
+            canvas_height = data.get('height', 900)
+            target_width_units = 3.5 * 254
+            target_height_units = 3.75 * 254
+            scale_x = target_width_units / canvas_width
+            scale_y = target_height_units / canvas_height
             
             # Convert each stroke
             for stroke in data.get('strokes', []):
@@ -249,7 +271,7 @@ class SewViewer(QMainWindow):
                 if len(coords) < 2:
                     continue
                     
-                scaled_coords = [(x * scale, y * scale) for x, y in coords]
+                scaled_coords = [(x * scale_x, y * scale_y) for x, y in coords]
                 pattern.add_block(scaled_coords, color)
             
             # Generate output filename
