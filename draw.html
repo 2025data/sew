@@ -4,7 +4,6 @@
   <meta charset="utf-8">
   <title>Kindle Drawing Pad</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <style>
     html, body {
       margin: 0;
@@ -68,10 +67,9 @@
       <option value="radial">Radial</option>
       <option value="quad">Quad</option>
     </select>
-    <button id="clear">🧹 Clear</button>
-    <button id="sew">🧵 Download</button>
-    <button id="copy">📋 Copy JSON</button>
-    <button id="qr">📱 QR Code</button>
+    <button id="clear">Clear</button>
+    <button id="sew">Dwnld</button>
+    <button id="copy">JSON</button>
   </div>
 
   <canvas id="pad"></canvas>
@@ -85,16 +83,6 @@
     </div>
   </div>
 
-  <div id="qr-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:1000;">
-    <div style="background:white; margin:20px; padding:20px; text-align:center; max-height:90%; overflow:auto;">
-      <h3>QR Code - Scan with Phone</h3>
-      <button onclick="document.getElementById('qr-modal').style.display='none'" style="float:right;">✕ Close</button>
-      <p>Scan this with your phone's camera or QR app</p>
-      <div id="qr-code" style="margin:20px auto;"></div>
-      <p style="font-size:12px; color:#666;">After scanning, the JSON data will be available to copy/download on your phone</p>
-    </div>
-  </div>
-
   <script>
     const c = document.getElementById('pad');
     const ctx = c.getContext('2d');
@@ -104,7 +92,6 @@
     const clearBtn = document.getElementById('clear');
     const sewBtn = document.getElementById('sew');
     const copyBtn = document.getElementById('copy');
-    const qrBtn = document.getElementById('qr');
 
     function resizeCanvas() {
       c.width = window.innerWidth;
@@ -568,48 +555,6 @@
       const jsonText = JSON.stringify(drawingData, null, 2);
       document.getElementById('json-text').value = jsonText;
       document.getElementById('json-modal').style.display = 'block';
-    });
-
-    // Generate QR Code with JSON data
-    qrBtn.addEventListener('click', () => {
-      if (allStrokes.length === 0) {
-        alert('No drawing to encode!');
-        return;
-      }
-
-      const drawingData = {
-        width: c.width,
-        height: c.height,
-        strokes: allStrokes,
-        timestamp: new Date().toISOString()
-      };
-
-      const jsonText = JSON.stringify(drawingData);
-      
-      // Check size
-      if (jsonText.length > 2900) {
-        alert('Drawing is too complex for QR code! Try:\n1. Using "Save" button to download\n2. Using "Copy JSON" to copy/paste\n3. Drawing something simpler');
-        return;
-      }
-
-      // Clear previous QR code
-      const qrDiv = document.getElementById('qr-code');
-      qrDiv.innerHTML = '';
-
-      // Generate QR code
-      try {
-        new QRCode(qrDiv, {
-          text: jsonText,
-          width: 400,
-          height: 400,
-          colorDark: '#000000',
-          colorLight: '#ffffff',
-          correctLevel: QRCode.CorrectLevel.L
-        });
-        document.getElementById('qr-modal').style.display = 'block';
-      } catch (error) {
-        alert('Error generating QR code. Drawing may be too complex.');
-      }
     });
   </script>
 </body>
