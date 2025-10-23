@@ -129,6 +129,14 @@
     let allStrokes = [];
     let currentStroke = null;
 
+    // Undo gesture tracking: long-press + 2 quick taps
+    let longPressDetected = false;
+    let longPressTimer = null;
+    let tapCount = 0;
+    let tapTimer = null;
+    const LONG_PRESS_DURATION = 800; // ms for long press
+    const TAP_TIMEOUT = 500; // ms between taps
+
     function drawGuides() {
       const mode = mirrorSel.value;
       const centerX = c.width / 2;
@@ -293,10 +301,93 @@
       }
     }
 
+    function undoLastStroke() {
+      if (allStrokes.length === 0) {
+        alert('Nothing to undo!');
+        return;
+      }
+      
+      // Remove last stroke
+      allStrokes.pop();
+      
+      // Redraw entire canvas
+      redrawCanvas();
+      
+      alert('Last stroke undone!');
+    }
+
+    function redrawCanvas() {
+      // Clear canvas
+      ctx.clearRect(0, 0, c.width, c.height);
+      drawGuides();
+      
+      // Redraw all strokes
+      allStrokes.forEach(stroke => {
+        // Set stroke properties
+        const oldColor = ctx.strokeStyle;
+        const oldFillStyle = ctx.fillStyle;
+        const oldWidth = ctx.lineWidth;
+        const oldMirror = mirrorSel.value;
+        
+        ctx.strokeStyle = stroke.color;
+        ctx.fillStyle = stroke.color;
+        ctx.lineWidth = stroke.width;
+        mirrorSel.value = stroke.mirror; // Temporarily set mirror mode
+        
+        if (stroke.type === 'dot') {
+          // Redraw dot
+          if (stroke.coordinates.length > 0) {
+            const [x, y] = stroke.coordinates[0];
+            drawDot(x, y);
+          }
+        } else {
+          // Redraw line
+          for (let i = 1; i < stroke.coordinates.length; i++) {
+            const [x1, y1] = stroke.coordinates[i - 1];
+            const [x2, y2] = stroke.coordinates[i];
+            drawLine(x1, y1, x2, y2);
+          }
+        }
+        
+        // Restore properties
+        ctx.strokeStyle = oldColor;
+        ctx.fillStyle = oldFillStyle;
+        ctx.lineWidth = oldWidth;
+        mirrorSel.value = oldMirror;
+      });
+    }
+
     c.addEventListener('touchstart', e => {
+      const {x, y} = getPos(e);
+      
+      // Check if this is part of undo gesture
+      if (longPressDetected && !drawing) {
+        // User has done long press, now counting taps
+        tapCount++;
+        clearTimeout(tapTimer);
+        
+        if (tapCount === 2) {
+          // Undo gesture complete!
+          undoLastStroke();
+          longPressDetected = false;
+          tapCount = 0;
+          e.preventDefault();
+          return;
+        }
+        
+        // Wait for next tap
+        tapTimer = setTimeout(() => {
+          longPressDetected = false;
+          tapCount = 0;
+        }, TAP_TIMEOUT);
+        
+        e.preventDefault();
+        return;
+      }
+      
+      // Normal drawing start
       drawing = true;
       hasMoved = false;
-      const {x, y} = getPos(e);
       lastX = x; lastY = y;
       
       // Start new stroke
@@ -316,23 +407,52 @@
         }
       }, 150);
       
+      // Set timer for long-press detection (for undo gesture)
+      longPressTimer = setTimeout(() => {
+        if (!hasMoved && drawing) {
+          // Long press detected - prepare for undo gesture
+          longPressDetected = true;
+          tapCount = 0;
+          drawing = false; // Stop drawing mode
+          clearTimeout(holdTimer);
+          
+          // Visual feedback
+          const oldStyle = ctx.strokeStyle;
+          ctx.strokeStyle = '#ff0000';
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.arc(x, y, 30, 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.strokeStyle = oldStyle;
+          
+          setTimeout(() => {
+            redrawCanvas();
+          }, 200);
+          
+          alert('Undo ready! Tap twice quickly to undo last stroke.');
+        }
+      }, LONG_PRESS_DURATION);
+      
       e.preventDefault();
     });
 
     c.addEventListener('touchend', e => {
       drawing = false;
       clearTimeout(holdTimer);
+      clearTimeout(longPressTimer);
       
       // If no movement occurred, draw a dot
-      if (!hasMoved) {
+      if (!hasMoved && !longPressDetected) {
         drawDot(lastX, lastY);
         currentStroke.type = 'dot';
       }
       
-      // Save the stroke
-      if (currentStroke && currentStroke.coordinates.length > 0) {
+      // Save the stroke (unless we're in undo gesture mode)
+      if (currentStroke && currentStroke.coordinates.length > 0 && !longPressDetected) {
         allStrokes.push(currentStroke);
         currentStroke = null;
+      } else if (longPressDetected) {
+        currentStroke = null; // Discard incomplete stroke
       }
       
       e.preventDefault();
@@ -342,6 +462,7 @@
       if (!drawing) return;
       hasMoved = true;
       clearTimeout(holdTimer);
+      clearTimeout(longPressTimer); // Cancel long-press if user starts moving
       
       const {x, y} = getPos(e);
       
