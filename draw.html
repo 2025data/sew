@@ -68,32 +68,11 @@
       <option value="radial">Radial</option>
       <option value="quad">Quad</option>
     </select>
-    <button id="clear">🧹 Clear</button>
-    <button id="sew">🧵 Download</button>
-    <button id="copy">📋 Copy JSON</button>
-    <button id="qr">📱 QR Code</button>
+    <button id="clear">Clr</button>
+    <button id="sew">Sew</button>
   </div>
 
   <canvas id="pad"></canvas>
-  
-  <div id="json-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:1000;">
-    <div style="background:white; margin:20px; padding:20px; max-height:90%; overflow:auto;">
-      <h3>JSON Data (Copy and paste to PC)</h3>
-      <button onclick="document.getElementById('json-modal').style.display='none'" style="float:right;">✕ Close</button>
-      <textarea id="json-text" style="width:100%; height:400px; font-family:monospace; font-size:10px;"></textarea>
-      <button onclick="navigator.clipboard.writeText(document.getElementById('json-text').value).then(()=>alert('Copied!'))" style="width:100%; margin-top:10px; padding:10px; font-size:16px;">📋 Copy to Clipboard</button>
-    </div>
-  </div>
-
-  <div id="qr-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:1000;">
-    <div style="background:white; margin:20px; padding:20px; text-align:center; max-height:90%; overflow:auto;">
-      <h3>QR Code - Scan with Phone</h3>
-      <button onclick="document.getElementById('qr-modal').style.display='none'" style="float:right;">✕ Close</button>
-      <p>Scan this with your phone's camera or QR app</p>
-      <div id="qr-code" style="margin:20px auto;"></div>
-      <p style="font-size:12px; color:#666;">After scanning, the JSON data will be available to copy/download on your phone</p>
-    </div>
-  </div>
 
   <script>
     const c = document.getElementById('pad');
@@ -103,8 +82,6 @@
     const mirrorSel = document.getElementById('mirror');
     const clearBtn = document.getElementById('clear');
     const sewBtn = document.getElementById('sew');
-    const copyBtn = document.getElementById('copy');
-    const qrBtn = document.getElementById('qr');
 
     function resizeCanvas() {
       c.width = window.innerWidth;
@@ -416,14 +393,16 @@
           drawing = false; // Stop drawing mode
           clearTimeout(holdTimer);
           
-          // Visual feedback
+          // Visual feedback - show 92px circle (always visible regardless of stroke width)
           const oldStyle = ctx.strokeStyle;
+          const oldWidth = ctx.lineWidth;
           ctx.strokeStyle = '#ff0000';
-          ctx.lineWidth = 2;
+          ctx.lineWidth = 3;
           ctx.beginPath();
-          ctx.arc(x, y, 30, 0, Math.PI * 2);
+          ctx.arc(x, y, 46, 0, Math.PI * 2);  // 46px radius = 92px diameter
           ctx.stroke();
           ctx.strokeStyle = oldStyle;
+          ctx.lineWidth = oldWidth;
           
           setTimeout(() => {
             redrawCanvas();
@@ -506,10 +485,10 @@
       ctx.fillStyle = colorSel.value;
     });
 
-    // Change mirror mode
+    // Change mirror mode - don't clear canvas, just redraw guides
     mirrorSel.addEventListener('change', () => {
-      ctx.clearRect(0, 0, c.width, c.height);
-      drawGuides();
+      // Don't clear the canvas - allow drawing to persist across mirror mode changes
+      redrawCanvas();
     });
 
     // Clear canvas
@@ -519,6 +498,81 @@
       allStrokes = []; // Clear stroke data
     });
 
+    // Function to expand strokes with their mirrored coordinates
+    function expandStrokesWithMirrors(strokes) {
+      const centerX = c.width / 2;
+      const centerY = c.height / 2;
+      const expandedStrokes = [];
+      
+      strokes.forEach(stroke => {
+        const mode = stroke.mirror;
+        const coords = stroke.coordinates;
+        
+        // Always add the original stroke (with mirror='none' to prevent re-mirroring)
+        expandedStrokes.push({
+          coordinates: coords,
+          color: stroke.color,
+          width: stroke.width,
+          mirror: 'none',
+          type: stroke.type
+        });
+        
+        // Add mirrored strokes based on mode
+        if (mode === 'bilateral') {
+          // Mirror across vertical centerline
+          const mirroredCoords = coords.map(([x, y]) => [c.width - x, y]);
+          expandedStrokes.push({
+            coordinates: mirroredCoords,
+            color: stroke.color,
+            width: stroke.width,
+            mirror: 'none',
+            type: stroke.type
+          });
+        } else if (mode === 'quad') {
+          // Mirror across both axes (3 additional copies)
+          const mirrorX = coords.map(([x, y]) => [c.width - x, y]);
+          const mirrorY = coords.map(([x, y]) => [x, c.height - y]);
+          const mirrorXY = coords.map(([x, y]) => [c.width - x, c.height - y]);
+          
+          [mirrorX, mirrorY, mirrorXY].forEach(mirroredCoords => {
+            expandedStrokes.push({
+              coordinates: mirroredCoords,
+              color: stroke.color,
+              width: stroke.width,
+              mirror: 'none',
+              type: stroke.type
+            });
+          });
+        } else if (mode === 'radial') {
+          // 8-way radial symmetry (7 additional copies)
+          for (let i = 1; i < 8; i++) {
+            const angle = (i * Math.PI) / 4;
+            const mirroredCoords = coords.map(([x, y]) => {
+              const dx = x - centerX;
+              const dy = y - centerY;
+              const dist = Math.sqrt(dx * dx + dy * dy);
+              const originalAngle = Math.atan2(dy, dx);
+              const newAngle = angle + (originalAngle - Math.atan2(coords[0][1] - centerY, coords[0][0] - centerX));
+              return [
+                centerX + Math.cos(newAngle) * dist,
+                centerY + Math.sin(newAngle) * dist
+              ];
+            });
+            
+            expandedStrokes.push({
+              coordinates: mirroredCoords,
+              color: stroke.color,
+              width: stroke.width,
+              mirror: 'none',
+              type: stroke.type
+            });
+          }
+        }
+      });
+      
+      return expandedStrokes;
+    }
+
     // Download drawing as TXT file (Kindle compatible)
     sewBtn.addEventListener('click', () => {
       if (allStrokes.length === 0) {
@@ -526,10 +580,13 @@
         return;
       }
 
+      // Expand all strokes with their mirrored versions
+      const expandedStrokes = expandStrokesWithMirrors(allStrokes);
+
       const drawingData = {
         width: c.width,
         height: c.height,
-        strokes: allStrokes,
+        strokes: expandedStrokes,
         timestamp: new Date().toISOString()
       };
 
@@ -549,67 +606,6 @@
       URL.revokeObjectURL(url);
 
       alert('Drawing saved as: ' + filename + '\nRename to .json on PC');
-    });
-
-    // Show JSON in copyable modal
-    copyBtn.addEventListener('click', () => {
-      if (allStrokes.length === 0) {
-        alert('No drawing to copy!');
-        return;
-      }
-
-      const drawingData = {
-        width: c.width,
-        height: c.height,
-        strokes: allStrokes,
-        timestamp: new Date().toISOString()
-      };
-
-      const jsonText = JSON.stringify(drawingData, null, 2);
-      document.getElementById('json-text').value = jsonText;
-      document.getElementById('json-modal').style.display = 'block';
-    });
-
-    // Generate QR Code with JSON data
-    qrBtn.addEventListener('click', () => {
-      if (allStrokes.length === 0) {
-        alert('No drawing to encode!');
-        return;
-      }
-
-      const drawingData = {
-        width: c.width,
-        height: c.height,
-        strokes: allStrokes,
-        timestamp: new Date().toISOString()
-      };
-
-      const jsonText = JSON.stringify(drawingData);
-      
-      // Check size
-      if (jsonText.length > 2900) {
-        alert('Drawing is too complex for QR code! Try:\n1. Using "Save" button to download\n2. Using "Copy JSON" to copy/paste\n3. Drawing something simpler');
-        return;
-      }
-
-      // Clear previous QR code
-      const qrDiv = document.getElementById('qr-code');
-      qrDiv.innerHTML = '';
-
-      // Generate QR code
-      try {
-        new QRCode(qrDiv, {
-          text: jsonText,
-          width: 400,
-          height: 400,
-          colorDark: '#000000',
-          colorLight: '#ffffff',
-          correctLevel: QRCode.CorrectLevel.L
-        });
-        document.getElementById('qr-modal').style.display = 'block';
-      } catch (error) {
-        alert('Error generating QR code. Drawing may be too complex.');
-      }
     });
   </script>
 </body>
