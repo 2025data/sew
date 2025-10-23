@@ -114,6 +114,9 @@
     const LONG_PRESS_DURATION = 800; // ms for long press
     const TAP_TIMEOUT = 500; // ms between taps
 
+    // Sequential counter for file naming (stored in localStorage)
+    let fileCounter = parseInt(localStorage.getItem('sewFileCounter') || '1');
+
     function drawGuides() {
       const mode = mirrorSel.value;
       const centerX = c.width / 2;
@@ -590,9 +593,26 @@
         timestamp: new Date().toISOString()
       };
 
-      // Create filename with timestamp (use .txt for Kindle compatibility)
-      const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
-      const filename = `drawing_${timestamp}.txt`;
+      // Create filename with date-time and sequential counter
+      const now = new Date();
+      const dateStr = now.toLocaleDateString('en-US', { 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+      }); // e.g., "October 23, 2025"
+      const timeStr = now.toLocaleTimeString('en-US', { 
+        hour: '2-digit', 
+        minute: '2-digit', 
+        second: '2-digit',
+        hour12: false 
+      }).replace(/:/g, '-'); // e.g., "14-30-45"
+      
+      const counterStr = String(fileCounter).padStart(4, '0'); // e.g., "0001"
+      const filename = `${dateStr}-${timeStr}#${counterStr}.txt`;
+      
+      // Increment and save counter
+      fileCounter++;
+      localStorage.setItem('sewFileCounter', String(fileCounter));
 
       // Create blob and download as text/plain for Kindle
       const blob = new Blob([JSON.stringify(drawingData, null, 2)], {
