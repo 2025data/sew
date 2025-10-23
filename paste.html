@@ -105,12 +105,21 @@
         <li>Click "JSON" button to open the JSON modal</li>
         <li>Click "Copy to Clipboard" button</li>
         <li>Come to this page</li>
-        <li>Long-press in the text area below → Paste</li>
+        <li>Click "Paste from Clipboard" button above</li>
+        <li>If that doesn't work, tap in text area and look for Kindle's paste option</li>
         <li>Click "Save to Server"</li>
       </ol>
+      <p style="margin: 10px 0; padding: 10px; background: #e7f3ff; border-radius: 4px;">
+        <strong>Alternative:</strong> If pasting doesn't work, you can connect Kindle via USB, 
+        copy the files from the documents folder, and place them in the SewCustom folder on your PC.
+      </p>
     </div>
 
-    <textarea id="jsonInput" placeholder="Paste your drawing JSON here..."></textarea>
+    <div class="button-group" style="margin-bottom: 10px;">
+      <button class="save-btn" onclick="pasteFromClipboard()" style="background: #2196F3;">📋 Paste from Clipboard</button>
+    </div>
+
+    <textarea id="jsonInput" placeholder="JSON will appear here after clicking 'Paste from Clipboard' button above..."></textarea>
 
     <div class="button-group">
       <button class="save-btn" onclick="saveDrawing()">💾 Save to Server</button>
@@ -121,6 +130,32 @@
   </div>
 
   <script>
+    async function pasteFromClipboard() {
+      const jsonInput = document.getElementById('jsonInput');
+      const statusDiv = document.getElementById('status');
+      
+      try {
+        // Try modern clipboard API
+        if (navigator.clipboard && navigator.clipboard.readText) {
+          const text = await navigator.clipboard.readText();
+          if (text) {
+            jsonInput.value = text;
+            showStatus('success', 'Pasted from clipboard! Now click "Save to Server"');
+          } else {
+            showStatus('error', 'Clipboard is empty');
+          }
+        } else {
+          // Fallback: Show instructions for manual paste
+          showStatus('error', 'Clipboard API not supported. Try:<br>1. Tap in the text area below<br>2. Use Kindle keyboard to paste (if available)<br>3. Or manually type/paste the JSON');
+          jsonInput.focus();
+        }
+      } catch (err) {
+        // Permission denied or not supported
+        showStatus('error', 'Cannot access clipboard automatically.<br>Please try:<br>1. Tap in text area<br>2. Look for a "Paste" option in Kindle menu<br>3. Or use Kindle keyboard if available');
+        jsonInput.focus();
+      }
+    }
+
     function saveDrawing() {
       const jsonInput = document.getElementById('jsonInput');
       const statusDiv = document.getElementById('status');
