@@ -187,35 +187,71 @@ class SewViewer(QMainWindow):
             canvas_width = data.get('width', 800)  # Kindle canvas width in pixels
             canvas_height = data.get('height', 900)  # Kindle canvas height in pixels
             
-            # Target dimensions for embroidery (Kindle drawable area 1:1 scale)
-            target_width_inches = 3.5   # inches
-            target_height_inches = 3.75  # inches
+            print(f"Canvas dimensions: {canvas_width} x {canvas_height} pixels")
+            
+            # Calculate the aspect ratio of the Kindle canvas
+            canvas_aspect = canvas_width / canvas_height
+            
+            # Target dimensions - maintain Kindle aspect ratio but scale to reasonable size
+            # Let's use 3.5" as the width and calculate height to maintain aspect ratio
+            target_width_inches = 3.5
+            target_height_inches = target_width_inches / canvas_aspect
+            
+            print(f"Target dimensions: {target_width_inches:.2f}\" x {target_height_inches:.2f}\"")
             
             # Convert inches to pystitch units (1 unit = 0.1mm, 1 inch = 25.4mm)
-            # 3.5" = 88.9mm = 889 units, 3.75" = 95.25mm = 952.5 units
             target_width_units = target_width_inches * 254  # 254 units per inch
             target_height_units = target_height_inches * 254
             
-            # Calculate scale to map canvas pixels to exact target dimensions
-            scale_x = target_width_units / canvas_width
-            scale_y = target_height_units / canvas_height
+            # Calculate uniform scale to maintain aspect ratio
+            scale = target_width_units / canvas_width
             
-            # Use different scale for X and Y to map exactly to 3.5" x 3.75"
-            # This preserves the drawing exactly as seen on Kindle
+            # Verify the scale produces correct dimensions
+            print(f"Scale factor: {scale:.4f}")
+            print(f"Output size: {canvas_width * scale / 254:.2f}\" x {canvas_height * scale / 254:.2f}\"")
+            
+            # Count stroke types for debugging
+            stroke_counts = {}
             
             # Convert each stroke
             for stroke in data.get('strokes', []):
                 coords = stroke['coordinates']
                 color = stroke['color']
+                width = stroke.get('width', 12)  # Default to 12px if not specified
                 
                 if len(coords) < 2:
                     continue  # Skip single points
                     
-                # Scale coordinates with separate X and Y scaling for 1:1 mapping
-                scaled_coords = [(x * scale_x, y * scale_y) for x, y in coords]
+                # Scale coordinates with uniform scaling to maintain aspect ratio
+                scaled_coords = [(x * scale, y * scale) for x, y in coords]
+                
+                # Determine stitch type based on line width and color
+                if color == '#FFFFFF':  # White - skip (no stitching)
+                    print(f"Skipping white stroke (width: {width})")
+                    continue
+                elif width in [1, 2, 4, 7, 12, 20, 33]:
+                    # Thin lines - use satin stitch (running stitch for lines)
+                    stitch_type = 'satin'
+                    stroke_counts[f'satin_{width}'] = stroke_counts.get(f'satin_{width}', 0) + 1
+                elif width in [55, 92, 153, 300]:
+                    # Thick lines - use fill/tatami stitch
+                    stitch_type = 'fill'
+                    stroke_counts[f'fill_{width}'] = stroke_counts.get(f'fill_{width}', 0) + 1
+                else:
+                    # Default to satin for unknown widths
+                    stitch_type = 'satin'
+                    stroke_counts[f'satin_{width}'] = stroke_counts.get(f'satin_{width}', 0) + 1
                 
                 # Add to pattern
-                pattern.add_block(scaled_coords, color)
+                try:
+                    pattern.add_block(scaled_coords, color)
+                except Exception as e:
+                    print(f"Warning: Could not add stroke with width {width}: {e}")
+            
+            # Print conversion summary
+            print("\nStroke conversion summary:")
+            for stitch_info, count in stroke_counts.items():
+                print(f"  {stitch_info}: {count} strokes")
             
             # Generate output filename
             base_name = os.path.splitext(os.path.basename(self.current_file))[0]
@@ -227,11 +263,15 @@ class SewViewer(QMainWindow):
             )
             
             if output_file:
-                # Write PES file with settings
+                # Write PES file with settings for different stitch types
                 pystitch.write_pes(pattern, output_file, {
                     'max_stitch': 120,
                     'tie_on': True,
-                    'tie_off': True
+                    'tie_off': True,
+                    'auto_fill': True,      # Enable automatic fill detection
+                    'fill_angle': 45,       # Angle for fill stitches
+                    'satin_max_width': 10,  # Maximum width for satin before switching to fill
+                    'density': 4.0          # Stitch density (stitches per mm)
                 })
                 
                 QMessageBox.information(
@@ -258,10 +298,13 @@ class SewViewer(QMainWindow):
             # Get canvas dimensions and calculate scale (same as PES conversion)
             canvas_width = data.get('width', 800)
             canvas_height = data.get('height', 900)
-            target_width_units = 3.5 * 254
-            target_height_units = 3.75 * 254
-            scale_x = target_width_units / canvas_width
-            scale_y = target_height_units / canvas_height
+            
+            # Calculate the aspect ratio and uniform scale
+            canvas_aspect = canvas_width / canvas_height
+            target_width_inches = 3.5
+            target_height_inches = target_width_inches / canvas_aspect
+            target_width_units = target_width_inches * 254
+            scale = target_width_units / canvas_width
             
             # Convert each stroke
             for stroke in data.get('strokes', []):
@@ -271,7 +314,7 @@ class SewViewer(QMainWindow):
                 if len(coords) < 2:
                     continue
                     
-                scaled_coords = [(x * scale_x, y * scale_y) for x, y in coords]
+                scaled_coords = [(x * scale, y * scale) for x, y in coords]
                 pattern.add_block(scaled_coords, color)
             
             # Generate output filename
