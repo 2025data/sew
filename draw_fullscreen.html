@@ -153,16 +153,18 @@
     .weight-line {
       background: #000;
       width: 100%;
+      max-height: 50px;
     }
     .weight-label {
       position: absolute;
       bottom: 2px;
       right: 2px;
       background: rgba(255, 255, 255, 0.9);
-      padding: 2px 4px;
-      font-size: 10px;
+      padding: 1px 3px;
+      font-size: 9px;
       border-radius: 2px;
       z-index: 2;
+      pointer-events: none;
     }
     .color-swatch {
       width: 40px;
@@ -191,7 +193,6 @@
   <canvas id="pad"></canvas>
   
   <div id="menu">
-    <button id="kioskBtn">Kiosk</button>
     <button id="clearBtn">Clear</button>
     
     <div class="flyout-container">
@@ -281,15 +282,15 @@
       {name: 'teardrop', label: '💧'},
       {name: 'star', label: '★'},
       // Row 6: Basic shapes
-      {name: 'triangle', label: '△'},
-      {name: 'diamond', label: '◇'},
+      {name: 'ellipse', label: '⬭'},
+      {name: 'maze', label: '◎'},
       {name: 'hexagon', label: '⬡'},
-      {name: 'pentagon', label: '⬠'},
+      {name: 'doublej', label: '⟆'},
       {name: 'heart', label: '♥'},
       {name: 'cross', label: '✚'},
       {name: 'x', label: '✕'},
       // Row 7: Arrows & patterns
-      {name: 'arrowUp', label: '▲'},
+      {name: 'smiley', label: '☺'},
       {name: 'arrowRight', label: '▶'},
       {name: 'spiral', label: '◎'},
       {name: 'wave', label: '〰'},
@@ -753,11 +754,17 @@
         case 'square':
           ctx.rect(x - size, y - size, size * 2, size * 2);
           break;
-        case 'triangle':
-          ctx.moveTo(x, y - size);
-          ctx.lineTo(x + size, y + size);
-          ctx.lineTo(x - size, y + size);
-          ctx.closePath();
+        case 'ellipse':
+          ctx.ellipse(x, y, size * 1.5, size, 0, 0, Math.PI * 2);
+          break;
+        case 'maze':
+          drawMaze(x, y, size);
+          break;
+        case 'doublej':
+          drawDoubleJ(x, y, size);
+          break;
+        case 'smiley':
+          drawSmiley(x, y, size);
           break;
         case 'star':
           drawStar(x, y, 5, size, size / 2);
@@ -765,18 +772,8 @@
         case 'heart':
           drawHeart(x, y, size);
           break;
-        case 'diamond':
-          ctx.moveTo(x, y - size);
-          ctx.lineTo(x + size, y);
-          ctx.lineTo(x, y + size);
-          ctx.lineTo(x - size, y);
-          ctx.closePath();
-          break;
         case 'hexagon':
           drawPolygon(x, y, 6, size);
-          break;
-        case 'pentagon':
-          drawPolygon(x, y, 5, size);
           break;
         case 'cross':
           const w = size / 3;
@@ -788,13 +785,6 @@
           ctx.lineTo(x + size, y + size);
           ctx.moveTo(x + size, y - size);
           ctx.lineTo(x - size, y + size);
-          break;
-        case 'arrowUp':
-          ctx.moveTo(x, y - size);
-          ctx.lineTo(x + size, y + size / 2);
-          ctx.lineTo(x, y);
-          ctx.lineTo(x - size, y + size / 2);
-          ctx.closePath();
           break;
         case 'arrowRight':
           ctx.moveTo(x + size, y);
@@ -928,6 +918,45 @@
         const yPos = y + Math.sin(i / 3) * size / 2;
         ctx.lineTo(xPos, yPos);
       }
+    }
+
+    function drawMaze(x, y, size) {
+      // Circular maze pattern
+      ctx.arc(x, y, size, 0, Math.PI * 2);
+      ctx.moveTo(x + size * 0.66, y);
+      ctx.arc(x, y, size * 0.66, 0, Math.PI * 2);
+      ctx.moveTo(x + size * 0.33, y);
+      ctx.arc(x, y, size * 0.33, 0, Math.PI * 2);
+      // Radial lines
+      for (let i = 0; i < 4; i++) {
+        const angle = (i * Math.PI) / 2;
+        ctx.moveTo(x, y);
+        ctx.lineTo(x + Math.cos(angle) * size, y + Math.sin(angle) * size);
+      }
+    }
+
+    function drawDoubleJ(x, y, size) {
+      // First J
+      ctx.moveTo(x - size / 2, y - size);
+      ctx.lineTo(x - size / 2, y + size / 2);
+      ctx.quadraticCurveTo(x - size / 2, y + size, x - size, y + size);
+      // Second J (mirrored)
+      ctx.moveTo(x + size / 2, y - size);
+      ctx.lineTo(x + size / 2, y + size / 2);
+      ctx.quadraticCurveTo(x + size / 2, y + size, x + size, y + size);
+    }
+
+    function drawSmiley(x, y, size) {
+      // Face circle
+      ctx.arc(x, y, size, 0, Math.PI * 2);
+      // Eyes
+      ctx.moveTo(x - size / 3, y - size / 3);
+      ctx.arc(x - size / 3, y - size / 3, size / 8, 0, Math.PI * 2);
+      ctx.moveTo(x + size / 3, y - size / 3);
+      ctx.arc(x + size / 3, y - size / 3, size / 8, 0, Math.PI * 2);
+      // Smile
+      ctx.moveTo(x - size / 2, y + size / 4);
+      ctx.quadraticCurveTo(x, y + size / 2, x + size / 2, y + size / 4);
     }
 
     function drawCurve(x, y, size) {
@@ -1176,92 +1205,6 @@
       statusDiv.classList.add('show');
       setTimeout(() => statusDiv.classList.remove('show'), duration);
     }
-
-    // Kiosk mode functionality
-    let isKioskMode = false;
-    const kioskBtn = document.getElementById('kioskBtn');
-
-    function enterKioskMode() {
-      const elem = document.documentElement;
-      if (elem.requestFullscreen) {
-        elem.requestFullscreen();
-      } else if (elem.webkitRequestFullscreen) {
-        elem.webkitRequestFullscreen();
-      } else if (elem.mozRequestFullScreen) {
-        elem.mozRequestFullScreen();
-      } else if (elem.msRequestFullscreen) {
-        elem.msRequestFullscreen();
-      }
-      isKioskMode = true;
-      kioskBtn.textContent = 'Exit (hold 3s)';
-      showStatus('Kiosk mode active. Hold Exit button 3s to leave.', 3000);
-    }
-
-    function exitKioskMode() {
-      if (document.exitFullscreen) {
-        document.exitFullscreen();
-      } else if (document.webkitExitFullscreen) {
-        document.webkitExitFullscreen();
-      } else if (document.mozCancelFullScreen) {
-        document.mozCancelFullScreen();
-      } else if (document.msExitFullscreen) {
-        document.msExitFullscreen();
-      }
-      isKioskMode = false;
-      kioskBtn.textContent = 'Kiosk';
-      showStatus('Kiosk mode exited', 2000);
-    }
-
-    // Kiosk button with hold-to-exit when in kiosk mode
-    let kioskHoldTimer = null;
-    kioskBtn.addEventListener('touchstart', (e) => {
-      e.preventDefault();
-      if (isKioskMode) {
-        // Require 3-second hold to exit
-        kioskHoldTimer = setTimeout(() => {
-          exitKioskMode();
-          closeFlyouts();
-          menu.classList.remove('visible');
-        }, 3000);
-        showStatus('Hold to exit kiosk mode...', 3000);
-      } else {
-        enterKioskMode();
-        closeFlyouts();
-        menu.classList.remove('visible');
-      }
-    });
-
-    kioskBtn.addEventListener('touchend', (e) => {
-      e.preventDefault();
-      if (kioskHoldTimer) {
-        clearTimeout(kioskHoldTimer);
-        kioskHoldTimer = null;
-      }
-    });
-
-    kioskBtn.addEventListener('click', (e) => {
-      e.preventDefault();
-      if (!isKioskMode) {
-        enterKioskMode();
-        closeFlyouts();
-        menu.classList.remove('visible');
-      }
-    });
-
-    // Handle fullscreen change events
-    document.addEventListener('fullscreenchange', () => {
-      if (!document.fullscreenElement && isKioskMode) {
-        isKioskMode = false;
-        kioskBtn.textContent = 'Kiosk';
-      }
-    });
-
-    document.addEventListener('webkitfullscreenchange', () => {
-      if (!document.webkitFullscreenElement && isKioskMode) {
-        isKioskMode = false;
-        kioskBtn.textContent = 'Kiosk';
-      }
-    });
     
     // Show initial help
     setTimeout(() => {
