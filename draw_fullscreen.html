@@ -561,6 +561,9 @@
     let shapeRotation = 0;
     let rotationStartAngle = 0;
     let shapeAnchorPoint = null;
+    let holdTimer = null;
+    let rotationModeActive = false;
+    const HOLD_DURATION = 500; // milliseconds to hold before rotation activates
     
     canvas.addEventListener('touchstart', (e) => {
       const touch = e.touches[0];
@@ -596,7 +599,14 @@
       if (currentShape) {
         shapeAnchorPoint = {x, y};
         shapeRotation = 0;
+        rotationModeActive = false;
         drawStroke(currentStroke);
+        
+        // Start hold timer for rotation mode
+        holdTimer = setTimeout(() => {
+          rotationModeActive = true;
+          showStatus('Rotation active - drag to rotate', 1500);
+        }, HOLD_DURATION);
       }
     }, {passive: false});
     
@@ -604,21 +614,18 @@
       if (!isDrawing || menu.classList.contains('visible')) return;
       e.preventDefault();
       
-      // Check if two fingers for rotation (shape mode only)
-      if (currentShape && e.touches.length === 2) {
-        isRotatingShape = true;
+      // Shape rotation mode: hold activated, now drag to rotate
+      if (currentShape && rotationModeActive) {
+        const touch = e.touches[0];
+        const dx = touch.clientX - shapeAnchorPoint.x;
+        const dy = touch.clientY - shapeAnchorPoint.y;
         
-        // Calculate angle from anchor point to second finger
-        const touch2 = e.touches[1];
-        const dx = touch2.clientX - shapeAnchorPoint.x;
-        const dy = touch2.clientY - shapeAnchorPoint.y;
-        const currentAngle = Math.atan2(dy, dx);
+        // Calculate angle from anchor point to current touch position
+        // atan2 returns angle in radians: right=0, down=π/2, left=π, up=-π/2
+        const angle = Math.atan2(dy, dx);
         
-        if (rotationStartAngle === 0) {
-          rotationStartAngle = currentAngle;
-        }
-        
-        shapeRotation = currentAngle - rotationStartAngle;
+        // Convert to rotation (0° = right/east, rotating clockwise)
+        shapeRotation = angle;
         currentStroke.rotation = shapeRotation;
         
         // Redraw with new rotation
@@ -627,8 +634,10 @@
         return;
       }
       
-      // If shape mode but only one finger, don't draw continuous path
-      if (currentShape && !isRotatingShape) {
+      // If shape mode but rotation not active yet, cancel hold timer on any movement
+      if (currentShape && !rotationModeActive && holdTimer) {
+        clearTimeout(holdTimer);
+        holdTimer = null;
         return;
       }
       
@@ -647,8 +656,15 @@
       if (!isDrawing) return;
       e.preventDefault();
       
+      // Clear hold timer if still active
+      if (holdTimer) {
+        clearTimeout(holdTimer);
+        holdTimer = null;
+      }
+      
       // Reset rotation tracking
       isRotatingShape = false;
+      rotationModeActive = false;
       rotationStartAngle = 0;
       shapeAnchorPoint = null;
       
