@@ -262,7 +262,7 @@
       'round', 'square'                  // Line mode reset buttons
     ];
     
-    // Rows 4-7: Shapes (28 shapes)
+    // Rows 4-8: Shapes (33 shapes for 7 columns × 5 rows - 2 = 33)
     const shapes = [
       // Row 4: Celtic knot elements
       {name: 'curve', label: '⌒'},
@@ -277,25 +277,32 @@
       {name: 'ring', label: '◦'},
       {name: 'doublering', label: '◉'},
       {name: 'quatrefoil', label: '❀'},
-      {name: 'flower', label: '✿'},
       {name: 'leaf', label: '🍃'},
       {name: 'teardrop', label: '💧'},
-      // Row 6: Original shapes
-      {name: 'circle', label: '○'},
-      {name: 'square', label: '□'},
-      {name: 'triangle', label: '△'},
       {name: 'star', label: '★'},
-      {name: 'heart', label: '♥'},
+      // Row 6: Basic shapes
+      {name: 'triangle', label: '△'},
       {name: 'diamond', label: '◇'},
       {name: 'hexagon', label: '⬡'},
-      // Row 7: Additional
       {name: 'pentagon', label: '⬠'},
+      {name: 'heart', label: '♥'},
       {name: 'cross', label: '✚'},
       {name: 'x', label: '✕'},
+      // Row 7: Arrows & patterns
       {name: 'arrowUp', label: '▲'},
       {name: 'arrowRight', label: '▶'},
       {name: 'spiral', label: '◎'},
-      {name: 'wave', label: '〰'}
+      {name: 'wave', label: '〰'},
+      {name: 'zigzag', label: '⩘'},
+      {name: 'chevron', label: '⌃'},
+      {name: 'brackets', label: '〈〉'},
+      // Row 8: Grid patterns
+      {name: 'grid', label: '⊞'},
+      {name: 'isogrid', label: '◊'},
+      {name: 'hatch', label: '⫽'},
+      {name: 'crosshatch', label: '⊠'},
+      {name: 'hexgrid', label: '⬡'},
+      {name: 'brickgrid', label: '▭'}
     ];
     
     const colors = ['#000000', '#333333', '#666666', '#999999', '#CCCCCC', '#FFFFFF'];
@@ -802,6 +809,33 @@
         case 'wave':
           drawWave(x, y, size);
           break;
+        case 'zigzag':
+          drawZigzag(x, y, size);
+          break;
+        case 'chevron':
+          drawChevron(x, y, size);
+          break;
+        case 'brackets':
+          drawBrackets(x, y, size);
+          break;
+        case 'grid':
+          drawGrid(x, y, size);
+          break;
+        case 'isogrid':
+          drawIsogrid(x, y, size);
+          break;
+        case 'hatch':
+          drawHatch(x, y, size);
+          break;
+        case 'crosshatch':
+          drawCrosshatch(x, y, size);
+          break;
+        case 'hexgrid':
+          drawHexgrid(x, y, size);
+          break;
+        case 'brickgrid':
+          drawBrickgrid(x, y, size);
+          break;
         case 'curve':
           drawCurve(x, y, size);
           break;
@@ -837,9 +871,6 @@
           break;
         case 'quatrefoil':
           drawQuatrefoil(x, y, size);
-          break;
-        case 'flower':
-          drawFlower(x, y, size);
           break;
         case 'leaf':
           drawLeaf(x, y, size);
@@ -952,19 +983,6 @@
       }
     }
 
-    function drawFlower(x, y, size) {
-      const petals = 6;
-      for (let i = 0; i < petals; i++) {
-        const angle = (i * 2 * Math.PI) / petals;
-        const px = x + Math.cos(angle) * size;
-        const py = y + Math.sin(angle) * size;
-        ctx.moveTo(x, y);
-        ctx.quadraticCurveTo(px, py, x, y);
-      }
-      ctx.moveTo(x + size / 3, y);
-      ctx.arc(x, y, size / 3, 0, Math.PI * 2);
-    }
-
     function drawLeaf(x, y, size) {
       ctx.moveTo(x, y - size);
       ctx.quadraticCurveTo(x + size, y - size / 2, x, y + size);
@@ -975,6 +993,116 @@
       ctx.moveTo(x, y - size);
       ctx.bezierCurveTo(x + size, y - size / 2, x + size, y + size / 2, x, y + size);
       ctx.bezierCurveTo(x - size, y + size / 2, x - size, y - size / 2, x, y - size);
+    }
+
+    function drawZigzag(x, y, size) {
+      const points = 4;
+      const width = size * 2;
+      const height = size;
+      ctx.moveTo(x - width / 2, y - height / 2);
+      for (let i = 1; i <= points; i++) {
+        const xPos = x - width / 2 + (i / points) * width;
+        const yPos = i % 2 === 0 ? y - height / 2 : y + height / 2;
+        ctx.lineTo(xPos, yPos);
+      }
+    }
+
+    function drawChevron(x, y, size) {
+      ctx.moveTo(x - size, y + size / 2);
+      ctx.lineTo(x, y - size / 2);
+      ctx.lineTo(x + size, y + size / 2);
+    }
+
+    function drawBrackets(x, y, size) {
+      ctx.moveTo(x - size / 2, y - size);
+      ctx.lineTo(x - size, y);
+      ctx.lineTo(x - size / 2, y + size);
+      ctx.moveTo(x + size / 2, y - size);
+      ctx.lineTo(x + size, y);
+      ctx.lineTo(x + size / 2, y + size);
+    }
+
+    function drawGrid(x, y, size) {
+      const gridSize = 3;
+      const cellSize = (size * 2) / gridSize;
+      // Vertical lines
+      for (let i = 0; i <= gridSize; i++) {
+        const xPos = x - size + i * cellSize;
+        ctx.moveTo(xPos, y - size);
+        ctx.lineTo(xPos, y + size);
+      }
+      // Horizontal lines
+      for (let i = 0; i <= gridSize; i++) {
+        const yPos = y - size + i * cellSize;
+        ctx.moveTo(x - size, yPos);
+        ctx.lineTo(x + size, yPos);
+      }
+    }
+
+    function drawIsogrid(x, y, size) {
+      // Diamond/isometric grid pattern
+      const step = size / 2;
+      // Vertical diamonds
+      ctx.moveTo(x, y - size);
+      ctx.lineTo(x + size, y);
+      ctx.lineTo(x, y + size);
+      ctx.lineTo(x - size, y);
+      ctx.closePath();
+      // Interior cross
+      ctx.moveTo(x - size, y);
+      ctx.lineTo(x + size, y);
+      ctx.moveTo(x, y - size);
+      ctx.lineTo(x, y + size);
+    }
+
+    function drawHatch(x, y, size) {
+      // Parallel diagonal lines
+      const lines = 5;
+      const spacing = (size * 2) / lines;
+      for (let i = 0; i < lines; i++) {
+        const offset = -size + i * spacing;
+        ctx.moveTo(x + offset - size, y - size);
+        ctx.lineTo(x + offset + size, y + size);
+      }
+    }
+
+    function drawCrosshatch(x, y, size) {
+      // Diagonal lines in both directions
+      const lines = 4;
+      const spacing = (size * 2) / lines;
+      // Forward diagonal
+      for (let i = 0; i < lines; i++) {
+        const offset = -size + i * spacing;
+        ctx.moveTo(x + offset - size, y - size);
+        ctx.lineTo(x + offset + size, y + size);
+      }
+      // Backward diagonal
+      for (let i = 0; i < lines; i++) {
+        const offset = -size + i * spacing;
+        ctx.moveTo(x + offset + size, y - size);
+        ctx.lineTo(x + offset - size, y + size);
+      }
+    }
+
+    function drawHexgrid(x, y, size) {
+      // Hexagonal grid cell
+      drawPolygon(x, y, 6, size);
+      // Inner hexagons
+      drawPolygon(x, y, 6, size / 2);
+    }
+
+    function drawBrickgrid(x, y, size) {
+      // Brick/offset grid pattern
+      const brickWidth = size;
+      const brickHeight = size / 2;
+      // Top brick
+      ctx.rect(x - brickWidth / 2, y - size, brickWidth, brickHeight);
+      // Bottom left brick
+      ctx.rect(x - brickWidth, y - size + brickHeight, brickWidth, brickHeight);
+      // Bottom right brick
+      ctx.rect(x, y - size + brickHeight, brickWidth, brickHeight);
+      // Bottom row
+      ctx.rect(x - brickWidth / 2, y + brickHeight - size, brickWidth, brickHeight);
     }
     
     // Get mirrored points (for saving) based on mode
