@@ -153,15 +153,14 @@
       height: 100%;
       min-height: 50px;
       display: flex;
-      align-items: flex-end;
+      align-items: center;
       justify-content: center;
       position: relative;
       overflow: visible;
     }
-    .weight-line {
+    .weight-circle {
       background: #000;
-      width: 100%;
-      max-height: 50px;
+      border-radius: 50%;
     }
     .weight-label {
       position: absolute;
@@ -426,14 +425,16 @@
       const icon = document.createElement('div');
       icon.className = 'weight-icon';
       
-      const line = document.createElement('div');
-      line.className = 'weight-line';
+      const circle = document.createElement('div');
+      circle.className = 'weight-circle';
       // Show actual size up to button size (50px)
-      line.style.height = Math.min(w, 50) + 'px';
+      const size = Math.min(w, 50);
+      circle.style.width = size + 'px';
+      circle.style.height = size + 'px';
       
-      icon.appendChild(line);
+      icon.appendChild(circle);
       
-      // Add label showing pixel size in bottom-right corner
+      // Add label showing pixel size in top-left corner
       const label = document.createElement('div');
       label.className = 'weight-label';
       label.textContent = w + 'px';
