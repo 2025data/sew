@@ -1,0 +1,171 @@
+{
+  "width": 536,
+  "height": 571,
+  "strokes": [
+    {
+      "coordinates": [
+        [
+          257.5,
+          29.5
+        ],
+        [
+          256,
+          30
+        ],
+        [
+          237.5,
+          66.5
+        ],
+        [
+          264.5,
+          82.5
+        ],
+        [
+          266,
+          91
+        ],
+        [
+          252,
+          145
+        ],
+        [
+          275,
+          156
+        ],
+        [
+          274.5,
+          166
+        ],
+        [
+          251.5,
+          249
+        ],
+        [
+          190.5,
+          249.5
+        ],
+        [
+          307.5,
+          278.5
+        ],
+        [
+          264.5,
+          318
+        ],
+        [
+          247.5,
+          404.5
+        ],
+        [
+          311,
+          414.5
+        ],
+        [
+          235,
+          525.5
+        ]
+      ],
+      "color": "#000000",
+      "width": 33,
+      "mirror": "bilateral",
+      "type": "line"
+    },
+    {
+      "coordinates": [
+        [
+          363,
+          250
+        ],
+        [
+          365,
+          246.5
+        ],
+        [
+          451,
+          206
+        ],
+        [
+          460.5,
+          200
+        ]
+      ],
+      "color": "#000000",
+      "width": 33,
+      "mirror": "bilateral",
+      "type": "line"
+    },
+    {
+      "coordinates": [
+        [
+          225,
+          63.5
+        ]
+      ],
+      "color": "#FFFFFF",
+      "width": 7,
+      "mirror": "bilateral",
+      "type": "dot"
+    },
+    {
+      "coordinates": [
+        [
+          232.5,
+          70.5
+        ]
+      ],
+      "color": "#FFFFFF",
+      "width": 7,
+      "mirror": "bilateral",
+      "type": "dot"
+    },
+    {
+      "coordinates": [
+        [
+          246.5,
+          76
+        ]
+      ],
+      "color": "#FFFFFF",
+      "width": 7,
+      "mirror": "bilateral",
+      "type": "dot"
+    },
+    {
+      "coordinates": [
+        [
+          230,
+          264
+        ]
+      ],
+      "color": "#FFFFFF",
+      "width": 7,
+      "mirror": "bilateral",
+      "type": "dot"
+    },
+    {
+      "coordinates": [
+        [
+          454,
+          192.5
+        ]
+      ],
+      "color": "#FFFFFF",
+      "width": 7,
+      "mirror": "bilateral",
+      "type": "dot"
+    },
+    {
+      "coordinates": [
+        [
+          457,
+          212
+        ]
+      ],
+      "color": "#FFFFFF",
+      "width": 7,
+      "mirror": "bilateral",
+      "type": "dot"
+    }
+  ],
+  "timestamp": "2025-10-23T16:06:28.794Z"
+}
