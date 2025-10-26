@@ -159,12 +159,15 @@
       position: absolute;
       bottom: 2px;
       right: 2px;
-      background: rgba(255, 255, 255, 0.9);
-      padding: 1px 3px;
-      font-size: 9px;
+      background: rgba(255, 255, 255, 0.95);
+      padding: 2px 4px;
+      font-size: 11px;
+      font-weight: bold;
       border-radius: 2px;
-      z-index: 2;
+      z-index: 10;
       pointer-events: none;
+      color: #000;
+      border: 1px solid rgba(0, 0, 0, 0.2);
     }
     .color-swatch {
       width: 40px;
@@ -303,7 +306,8 @@
       {name: 'hatch', label: '⫽'},
       {name: 'crosshatch', label: '⊠'},
       {name: 'hexgrid', label: '⬡'},
-      {name: 'brickgrid', label: '▭'}
+      {name: 'brickgrid', label: '▭'},
+      {name: 'infinity', label: '∞'}
     ];
     
     const colors = ['#000000', '#333333', '#666666', '#999999', '#CCCCCC', '#FFFFFF'];
@@ -577,6 +581,19 @@
         return;
       }
       
+      // Bottom-right corner (100x100px) = undo last stroke
+      if (x > canvas.width - 100 && y > canvas.height - 100) {
+        e.preventDefault();
+        if (strokes.length > 0) {
+          strokes.pop();
+          redraw();
+          showStatus('Undo', 1000);
+        } else {
+          showStatus('Nothing to undo', 1000);
+        }
+        return;
+      }
+      
       // If menu is open and tapping outside it, close menu
       if (menu.classList.contains('visible')) {
         menu.classList.remove('visible');
@@ -841,6 +858,9 @@
           break;
         case 'brickgrid':
           drawBrickgrid(x, y, size);
+          break;
+        case 'infinity':
+          drawInfinity(x, y, size);
           break;
         case 'curve':
           drawCurve(x, y, size);
@@ -1148,6 +1168,19 @@
       ctx.rect(x, y - size + brickHeight, brickWidth, brickHeight);
       // Bottom row
       ctx.rect(x - brickWidth / 2, y + brickHeight - size, brickWidth, brickHeight);
+    }
+
+    function drawInfinity(x, y, size) {
+      // Infinity symbol (lemniscate) using two circles connected
+      const radius = size * 0.5;
+      const offset = size * 0.5;
+      
+      // Left loop
+      ctx.arc(x - offset, y, radius, 0, Math.PI * 2);
+      
+      // Right loop
+      ctx.moveTo(x + offset + radius, y);
+      ctx.arc(x + offset, y, radius, 0, Math.PI * 2);
     }
     
     // Get mirrored points (for saving) based on mode
